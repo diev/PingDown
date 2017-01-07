@@ -9,9 +9,9 @@ using System.Resources;
 [assembly: AssemblyTitle("PingDown")]
 [assembly: AssemblyDescription("Служба сетевых кабелей")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("АО Сити Инвест Банк")]
+[assembly: AssemblyCompany("AO City Invest Bank")]
 [assembly: AssemblyProduct("PingDown")]
-[assembly: AssemblyCopyright("Copyright © 2012-2016")]
+[assembly: AssemblyCopyright("Copyright © 2012-2017 Dmitrii Evdokimov")]
 [assembly: AssemblyTrademark("Дмитрий Евдокимов")]
 [assembly: AssemblyCulture("")]
 
@@ -33,6 +33,6 @@ using System.Resources;
 // Можно задать все значения или принять номер построения и номер редакции по умолчанию, 
 // используя "*", как показано ниже:
 // [assembly: AssemblyVersion("1.0.*")]
-[assembly: AssemblyVersion("1.6.60603.0")]
-[assembly: AssemblyFileVersion("1.6.60603.0")]
+[assembly: AssemblyVersion("1.6.0.0")]
+[assembly: AssemblyFileVersion("1.6.0.0")]
 [assembly: NeutralResourcesLanguageAttribute("")]
