@@ -9,7 +9,10 @@ skip_branch_with_pr: true
 max_jobs: 1
 configuration: Release
 init:
-- cmd: git config --global core.autocrlf input
+- cmd: >-
+    tzutil /s "Russian Standard Time"
+
+    git config --global core.autocrlf input
 assembly_info:
   patch: true
   file: '**\AssemblyInfo.*'
@@ -36,7 +39,7 @@ install:
 
     $CommitDateTime = [datetime]::Parse($env:APPVEYOR_REPO_COMMIT_TIMESTAMP)
 
-    $env:BuildDate = $CommitDateTime.AddHours(3).ToString('dd.MM.yyyy')
+    $env:BuildDate = $CommitDateTime.ToString('dd.MM.yyyy')
 
     Write-Host "Building v$env:APPVEYOR_BUILD_VERSION dated $env:BuildDate"
 build:
