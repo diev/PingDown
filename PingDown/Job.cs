@@ -4,6 +4,7 @@ using System;
 using System.Net.NetworkInformation;
 using System.Text;
 using System.Threading;
+using System.IO;
 
 namespace PingDown
 {
@@ -11,8 +12,9 @@ namespace PingDown
     {
         public struct Counters
         {
+            public static int ReInit = 0; // 250 (~1 hour at 1/15")
             public static int Queue = 0;
-            public static int Alarm = 0;
+            public static int Alarm = 0; // length of HOSTS
         }
 
         public struct States
@@ -54,7 +56,18 @@ namespace PingDown
                 //}
                 //else
                 //{ 
-                    hosts = Properties.Settings.Default.Hosts;
+                //hosts = Properties.Settings.Default.Hosts;
+
+                string hostsFile = Path.ChangeExtension(Program.AppExe, "hosts");
+                if (File.Exists(hostsFile))
+                {
+                    hosts = File.ReadAllText(hostsFile);
+                }
+                else
+                {
+                    hosts = "8.8.8.8, 8.8.4.4"; // Google IP's by default
+                }
+
                     //Program.Log("Hosts (config): " + hosts);
                 //}
             }
@@ -69,7 +82,7 @@ namespace PingDown
                 Program.Log("Failed to get hosts");
                 return false;
             }
-            char[] sep = { ',', ' ' };
+            char[] sep = { ',', ' ', '\r', '\n', '\t' };
             HOSTS = hosts.Split(sep, StringSplitOptions.RemoveEmptyEntries);
 
             return HOSTS.Length > 0;
@@ -77,6 +90,12 @@ namespace PingDown
 
         public static void CheckState(Object stateInfo)
         {
+            if (++Counters.ReInit >= 250)
+            {
+                Counters.ReInit = 0;
+                ReInit();
+            }
+
             if (States.PNG)
             {
                 CheckNext();
@@ -174,11 +193,24 @@ namespace PingDown
                 Service.JobTimer.Change(RUNDelayStart, RUNRepeatEvery);
             }
 
+            ReInit();
+
             if (++Counters.Alarm >= HOSTS.Length)
             {
                 States.WAR = true;
                 Counters.Alarm = 0;
                 CheckWar();
+            }
+        }
+
+        public static void ReInit()
+        {
+            string hostsFile = Path.ChangeExtension(Program.AppExe, "hosts");
+            if (File.Exists(hostsFile))
+            {
+                string hosts = File.ReadAllText(hostsFile);
+                char[] sep = { ',', ' ', '\r', '\n', '\t' };
+                HOSTS = hosts.Split(sep, StringSplitOptions.RemoveEmptyEntries);
             }
         }
 
@@ -209,12 +241,12 @@ namespace PingDown
 
             if (Program.TESTonly)
             {
-                Program.Log("Shutdown tested");
+                Program.Log("Shutdown wanted");
                 States.WAR = false;
             }
             else
             {
-                Program.Log("Shutdown initiated");
+                Program.Log("Shutdown started");
                 ExitWindows.Shutdown(!Program.TEST);
             }
         }

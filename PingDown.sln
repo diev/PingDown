@@ -1,24 +1,60 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.23107.0
+# Visual Studio 15
+VisualStudioVersion = 15.0.26228.9
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PingDown", "PingDown\PingDown.csproj", "{C9F3DF48-DAB5-4EBD-8F3B-96150E5AF0C5}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PingDown.Win32", "PingDown.Win32\PingDown.Win32.vcxproj", "{7EF7D2C6-6272-40DE-9AF0-E31AC6B3D622}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
 		Release x64|Any CPU = Release x64|Any CPU
+		Release x64|x64 = Release x64|x64
+		Release x64|x86 = Release x64|x86
 		Release|Any CPU = Release|Any CPU
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
 		Description = Служба сетевых кабелей
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{C9F3DF48-DAB5-4EBD-8F3B-96150E5AF0C5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{C9F3DF48-DAB5-4EBD-8F3B-96150E5AF0C5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C9F3DF48-DAB5-4EBD-8F3B-96150E5AF0C5}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{C9F3DF48-DAB5-4EBD-8F3B-96150E5AF0C5}.Debug|x64.Build.0 = Debug|Any CPU
+		{C9F3DF48-DAB5-4EBD-8F3B-96150E5AF0C5}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{C9F3DF48-DAB5-4EBD-8F3B-96150E5AF0C5}.Debug|x86.Build.0 = Debug|Any CPU
 		{C9F3DF48-DAB5-4EBD-8F3B-96150E5AF0C5}.Release x64|Any CPU.ActiveCfg = Release x64|Any CPU
 		{C9F3DF48-DAB5-4EBD-8F3B-96150E5AF0C5}.Release x64|Any CPU.Build.0 = Release x64|Any CPU
+		{C9F3DF48-DAB5-4EBD-8F3B-96150E5AF0C5}.Release x64|x64.ActiveCfg = Release x64|Any CPU
+		{C9F3DF48-DAB5-4EBD-8F3B-96150E5AF0C5}.Release x64|x64.Build.0 = Release x64|Any CPU
+		{C9F3DF48-DAB5-4EBD-8F3B-96150E5AF0C5}.Release x64|x86.ActiveCfg = Release x64|Any CPU
+		{C9F3DF48-DAB5-4EBD-8F3B-96150E5AF0C5}.Release x64|x86.Build.0 = Release x64|Any CPU
 		{C9F3DF48-DAB5-4EBD-8F3B-96150E5AF0C5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C9F3DF48-DAB5-4EBD-8F3B-96150E5AF0C5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C9F3DF48-DAB5-4EBD-8F3B-96150E5AF0C5}.Release|x64.ActiveCfg = Release|Any CPU
+		{C9F3DF48-DAB5-4EBD-8F3B-96150E5AF0C5}.Release|x64.Build.0 = Release|Any CPU
+		{C9F3DF48-DAB5-4EBD-8F3B-96150E5AF0C5}.Release|x86.ActiveCfg = Release|Any CPU
+		{C9F3DF48-DAB5-4EBD-8F3B-96150E5AF0C5}.Release|x86.Build.0 = Release|Any CPU
+		{7EF7D2C6-6272-40DE-9AF0-E31AC6B3D622}.Debug|Any CPU.ActiveCfg = Debug|Win32
+		{7EF7D2C6-6272-40DE-9AF0-E31AC6B3D622}.Debug|x64.ActiveCfg = Debug|x64
+		{7EF7D2C6-6272-40DE-9AF0-E31AC6B3D622}.Debug|x64.Build.0 = Debug|x64
+		{7EF7D2C6-6272-40DE-9AF0-E31AC6B3D622}.Debug|x86.ActiveCfg = Debug|Win32
+		{7EF7D2C6-6272-40DE-9AF0-E31AC6B3D622}.Debug|x86.Build.0 = Debug|Win32
+		{7EF7D2C6-6272-40DE-9AF0-E31AC6B3D622}.Release x64|Any CPU.ActiveCfg = Release|x64
+		{7EF7D2C6-6272-40DE-9AF0-E31AC6B3D622}.Release x64|Any CPU.Build.0 = Release|x64
+		{7EF7D2C6-6272-40DE-9AF0-E31AC6B3D622}.Release x64|x64.ActiveCfg = Release|x64
+		{7EF7D2C6-6272-40DE-9AF0-E31AC6B3D622}.Release x64|x64.Build.0 = Release|x64
+		{7EF7D2C6-6272-40DE-9AF0-E31AC6B3D622}.Release x64|x86.ActiveCfg = Release|Win32
+		{7EF7D2C6-6272-40DE-9AF0-E31AC6B3D622}.Release x64|x86.Build.0 = Release|Win32
+		{7EF7D2C6-6272-40DE-9AF0-E31AC6B3D622}.Release|Any CPU.ActiveCfg = Release|Win32
+		{7EF7D2C6-6272-40DE-9AF0-E31AC6B3D622}.Release|x64.ActiveCfg = Release|x64
+		{7EF7D2C6-6272-40DE-9AF0-E31AC6B3D622}.Release|x64.Build.0 = Release|x64
+		{7EF7D2C6-6272-40DE-9AF0-E31AC6B3D622}.Release|x86.ActiveCfg = Release|Win32
+		{7EF7D2C6-6272-40DE-9AF0-E31AC6B3D622}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
