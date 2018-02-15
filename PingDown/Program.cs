@@ -20,7 +20,8 @@ namespace PingDown
         public static readonly string AppDir = AppDomain.CurrentDomain.BaseDirectory;
         public static readonly string AppExe = Assembly.GetCallingAssembly().Location;
         //public static readonly string LogFile = AppDomain.CurrentDomain.BaseDirectory + @"\" + AppName + ".log";
-        public static string AppLog = Path.ChangeExtension(AppExe, "log");
+        //public static string AppLog = Path.ChangeExtension(AppExe, "log");
+        public static string AppLog = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), Path.GetFileNameWithoutExtension(AppExe) + ".log");
         //public static string AppLog = AppExe + ".log";
 
         public static bool TEST = false;
@@ -175,9 +176,10 @@ namespace PingDown
             if (Environment.UserInteractive)
             {
                 service.StartService(args);
-                Log("Press Enter to exit ...");
+                Console.WriteLine("Logged to " + AppLog);
+                Console.WriteLine("Press Enter to exit ...");
                 Console.ReadLine();
-                Log("Exit ...");
+                Console.WriteLine("Exit ...");
                 service.StopService();
             }
             else
@@ -218,6 +220,11 @@ namespace PingDown
 
         public static void Log(string s, bool stamped = true)
         {
+            if (!Environment.UserInteractive)
+            {
+                return;
+            }
+
             bool newln = s.StartsWith("\n");
 
             StringBuilder sb = new StringBuilder();
@@ -254,27 +261,34 @@ namespace PingDown
             }
             catch (Exception ex)
             {
-                string oldLog = AppLog;
-                string newPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-                AppLog = Path.Combine(newPath, Path.GetFileName(AppLog));
-
                 if (Environment.UserInteractive)
                 {
-                    Console.WriteLine("Fail to write into Log " + oldLog);
+                    Console.WriteLine("Error writting to Log " + AppLog);
                     Console.WriteLine(ex.Message);
-                    Console.WriteLine("Log changed to " + AppLog);
-                    Console.WriteLine(info);
-                    Console.WriteLine("Press Enter to exit...");
-                    Console.ReadLine();
                 }
-                else if (AppLog.Equals(oldLog))
-                {
-                    // No more ways to inform the user about this error...
-                }
-                else
-                { 
-                    Log(s); // a second try to write into another log
-                }
+                //string oldLog = AppLog;
+                //string newPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+                //AppLog = Path.Combine(newPath, Path.GetFileName(AppLog));
+
+                //if (Environment.UserInteractive)
+                //{
+                //    Console.WriteLine("Log changed to " + AppLog);
+
+                //    Console.WriteLine("Fail to write into Log " + oldLog);
+                //    Console.WriteLine(ex.Message);
+                //    Console.WriteLine("Log changed to " + AppLog);
+                //    Console.WriteLine(info);
+                //    Console.WriteLine("Press Enter to exit...");
+                //    Console.ReadLine();
+                //}
+                //else if (AppLog.Equals(oldLog))
+                //{
+                //    // No more ways to inform the user about this error...
+                //}
+                //else
+                //{ 
+                //    Log(s); // a second try to write into another log
+                //}
 
                 //EventLog.WriteEntry(ex.Message, EventLogEntryType.Error);
 

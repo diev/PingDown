@@ -8,103 +8,79 @@ using System.IO;
 
 namespace PingDown
 {
-    class Job
+    public static class Job
     {
         public struct Counters
         {
-            public static int ReInit = 0; // 250 (~1 hour at 1/15")
+            public const int RUNDelayStart = 1000;
+            public const int RUNRepeatEvery = 10000;
+
+            public static int ReInitLimit = 90; // 250 (~1 hour at 1/15")
+            public static int RetriesLimit = 3;
+
+            public static int ReInit = 0;
             public static int Queue = 0;
             public static int Alarm = 0; // length of HOSTS
+            public static int Retries = 0;
         }
 
         public struct States
         {
-            public static bool PNG = false;
-            public static bool RUN = false;
-            public static bool WAR = false;
+            public static bool NET = false; // network ready
+            public static bool PNG = false; // ping wanted
+            public static bool RUN = false; // processing
+            public static bool WAR = false; // ping lost
         }
 
         private static string[] HOSTS = { };
 
-        private static int RUNDelayStart = 1000;
-        private static int RUNRepeatEvery = 10000;
-
-        public Job()
-        {
-            //
-        }
-
         public static bool Init(string[] args)
         {
-            string hosts = null;
-
             if (args.Length == 0 || args[0].Equals("-"))
             {
-                //RegistryKey sKey = Registry.LocalMachine.OpenSubKey(Program.AppRegistry);
-                //if (sKey != null)
-                //{
-                //    RegistryKey pKey = sKey.OpenSubKey(Program.AppParameters);
-                //    if (pKey != null)
-                //    {
-                //        hosts = pKey.GetValue("Hosts").ToString();
-                //    }
-                //}
-
-                //if (!string.IsNullOrWhiteSpace(hosts))
-                //{
-                //    Program.Log("Hosts (registry): " + hosts);
-                //}
-                //else
-                //{ 
-                //hosts = Properties.Settings.Default.Hosts;
-
-                string hostsFile = Path.ChangeExtension(Program.AppExe, "hosts");
-                if (File.Exists(hostsFile))
-                {
-                    hosts = File.ReadAllText(hostsFile);
-                }
-                else
-                {
-                    hosts = "8.8.8.8, 8.8.4.4"; // Google IP's by default
-                }
-
-                    //Program.Log("Hosts (config): " + hosts);
-                //}
+                ReInit();
             }
             else
             {
-                hosts = args[0];
-                //Program.Log("Hosts (command): " + hosts);
+                ReInit(args[0]);
+                //States.NET = true;
             }
 
-            if (string.IsNullOrEmpty(hosts))
+            if (Program.TEST)
             {
-                Program.Log("Failed to get hosts");
-                return false;
+                Counters.ReInitLimit /= 10;
             }
-            char[] sep = { ',', ' ', '\r', '\n', '\t' };
-            HOSTS = hosts.Split(sep, StringSplitOptions.RemoveEmptyEntries);
 
             return HOSTS.Length > 0;
         }
 
         public static void CheckState(Object stateInfo)
         {
-            if (++Counters.ReInit >= 250)
+            string who;
+            if (States.NET)
             {
-                Counters.ReInit = 0;
-                ReInit();
-            }
+                if (++Counters.ReInit >= Counters.ReInitLimit)
+                {
+                    ReInit();
+                    Counters.ReInit = 0;
+                }
 
-            if (States.PNG)
-            {
-                CheckNext();
-            }
-            string who = HOSTS[Counters.Queue];
+                if (States.PNG)
+                {
+                    CheckNext();
+                }
 
-            if (++Counters.Queue >= HOSTS.Length)
+                who = HOSTS[Counters.Queue];
+
+                if (++Counters.Queue >= HOSTS.Length)
+                {
+                    Counters.Queue = 0;
+                }
+
+            }
+            else
             {
-                Counters.Queue = 0;
+                who = "127.0.0.1";
             }
 
             if (Program.TEST)
@@ -174,14 +150,29 @@ namespace PingDown
                 return;
             }
 
+            if (!States.NET)
+            {
+                States.NET = true; // Network becomes ready
+            }
+
             if (States.RUN)
             {
+                States.RUN = false;
+                States.WAR = false;
+                Counters.Alarm = 0;
+                Counters.Retries = 0;
+
                 CheckOk();
             }
         }
 
         public static void CheckNext()
         {
+            if (!States.NET) // no Network ready
+            {
+                return;
+            }
+
             if (Program.TEST)
             {
                 Program.Log("Failed!");
@@ -190,39 +181,50 @@ namespace PingDown
             if (!States.RUN)
             {
                 States.RUN = true;
-                Service.JobTimer.Change(RUNDelayStart, RUNRepeatEvery);
+                Service.JobTimer.Change(Counters.RUNDelayStart, Counters.RUNRepeatEvery);
             }
-
-            ReInit();
 
             if (++Counters.Alarm >= HOSTS.Length)
             {
+                Counters.Alarm = 0;
+                ++Counters.Retries;
+
+                Program.Log("Retries " + Counters.Retries.ToString());
+                ReInit();
+                Counters.ReInit = 0;
+            }
+
+            if (Counters.Retries >= Counters.RetriesLimit)
+            {
                 States.WAR = true;
                 Counters.Alarm = 0;
+                Counters.Retries = 0;
+
                 CheckWar();
             }
         }
 
-        public static void ReInit()
+        public static void ReInit(string hosts = null)
         {
-            string hostsFile = Path.ChangeExtension(Program.AppExe, "hosts");
-            if (File.Exists(hostsFile))
+            if (string.IsNullOrEmpty(hosts))
             {
-                string hosts = File.ReadAllText(hostsFile);
-                char[] sep = { ',', ' ', '\r', '\n', '\t' };
-                HOSTS = hosts.Split(sep, StringSplitOptions.RemoveEmptyEntries);
+                string hostsFile = Path.ChangeExtension(Program.AppExe, "hosts");
+                if (File.Exists(hostsFile))
+                {
+                    Program.Log("Read hosts");
+                    hosts = File.ReadAllText(hostsFile);
+                }
             }
+            char[] sep = { ',', ' ', '\r', '\n', '\t' };
+            HOSTS = hosts.Split(sep, StringSplitOptions.RemoveEmptyEntries);
         }
 
         public static void CheckOk()
         {
-            States.RUN = false;
-            States.WAR = false;
-            Counters.Alarm = 0;
             if (Program.TEST)
             {
                 Program.Log("OK");
-                Service.FasterTimer(4);
+                Service.FasterTimer(6);
             }
             else
             {

@@ -8,8 +8,8 @@ namespace PingDown
     {
         public static Timer JobTimer;
 
-        public const int DelayStart = 2000;
-        public const int RepeatEvery = 60000;
+        public const int DelayStart = 60000; //ms
+        public const int RepeatEvery = 60000; //ms
 
         public Service()
         {
@@ -43,7 +43,7 @@ namespace PingDown
                 JobTimer = new Timer(timerCallback, timerEvent, DelayStart, RepeatEvery);
                 if (Program.TEST)
                 {
-                    FasterTimer(4);
+                    FasterTimer(6);
                 }
             }
             else
