@@ -33,6 +33,7 @@ namespace PingDown
         }
 
         private static string[] HOSTS = { };
+        private static bool HostsFixed = false;
 
         public static bool Init(string[] args)
         {
@@ -44,6 +45,7 @@ namespace PingDown
             {
                 ReInit(args[0]);
                 //States.NET = true;
+                HostsFixed = true;
             }
 
             if (Program.TEST)
@@ -95,31 +97,43 @@ namespace PingDown
             // http://msdn.microsoft.com/en-us/library/ms229713.aspx
 
             Ping pingSender = new Ping();
+            try
+            {
+                // When the PingCompleted event is raised,
+                // the PingCompletedCallback method is called.
+                pingSender.PingCompleted += new PingCompletedEventHandler(PingCompletedCallback);
 
-            // When the PingCompleted event is raised,
-            // the PingCompletedCallback method is called.
-            pingSender.PingCompleted += new PingCompletedEventHandler(PingCompletedCallback);
+                // Create a buffer of 32 bytes of data to be transmitted.
+                string data = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+                byte[] buffer = Encoding.ASCII.GetBytes(data);
 
-            // Create a buffer of 32 bytes of data to be transmitted.
-            string data = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
-            byte[] buffer = Encoding.ASCII.GetBytes(data);
+                // Wait 4 seconds for a reply.
+                const int timeout = 4000;
 
-            // Wait 4 seconds for a reply.
-            const int timeout = 4000;
+                // Set options for transmission:
+                // The data can go through 4 gateways or routers
+                // before it is destroyed, and the data packet
+                // cannot be fragmented.
+                PingOptions options = new PingOptions(4, true);
 
-            // Set options for transmission:
-            // The data can go through 4 gateways or routers
-            // before it is destroyed, and the data packet
-            // cannot be fragmented.
-            PingOptions options = new PingOptions(4, true);
+                // Send the ping asynchronously.
+                // Use the waiter as the user token.
+                // When the callback completes, it can wake up this thread.
+                pingSender.SendAsync(who, timeout, buffer, options, waiter);
+                waiter.WaitOne();
+            }
+            catch
+            {
+                States.NET = false;
+                States.WAR = true;
 
-            // Send the ping asynchronously.
-            // Use the waiter as the user token.
-            // When the callback completes, it can wake up this thread.
-            pingSender.SendAsync(who, timeout, buffer, options, waiter);
-            waiter.WaitOne();
-            pingSender.Dispose();
-            //waiter.Dispose();
+                CheckWar();
+            }
+            finally
+            {
+                pingSender.Dispose();
+                //waiter.Dispose();
+            }
         }
 
         private static void PingCompletedCallback(object sender, PingCompletedEventArgs e)
@@ -206,6 +220,10 @@ namespace PingDown
 
         public static void ReInit(string hosts = null)
         {
+            if (HostsFixed)
+            {
+                return;
+            }
             if (string.IsNullOrEmpty(hosts))
             {
                 string hostsFile = Path.ChangeExtension(Program.AppExe, "hosts");
@@ -246,11 +264,42 @@ namespace PingDown
                 Program.Log("Shutdown wanted");
                 States.WAR = false;
             }
-            else
+
+            if (LastCheck())
+            {
+                Program.Log("Passed");
+                States.WAR = false;
+            }
+
+            if (States.WAR)
             {
                 Program.Log("Shutdown started");
                 ExitWindows.Shutdown(!Program.TEST);
             }
+        }
+
+        public static bool LastCheck()
+        {
+            string check = "P" + DateTime.Now.AddDays(7).ToString("yyyy-MM-dd");
+            try
+            {
+                foreach (var driveInfo in DriveInfo.GetDrives())
+                {
+                    if (driveInfo.IsReady && driveInfo.DriveType == DriveType.Removable)
+                    {
+                        string label = driveInfo.VolumeLabel;
+                        if (!string.IsNullOrEmpty(label) && label.Equals(check))
+                        {
+                            return true;
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                Program.Log("Drives bad");
+            }
+            return false;
         }
     }
 }
