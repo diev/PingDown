@@ -5,6 +5,7 @@ using System.Net.NetworkInformation;
 using System.Text;
 using System.Threading;
 using System.IO;
+//using System.Management;
 
 namespace PingDown
 {
@@ -283,9 +284,19 @@ namespace PingDown
             string check = "P" + DateTime.Now.AddDays(7).ToString("yyyy-MM-dd");
             try
             {
+                //ConnectionOptions opts = new ConnectionOptions();
+                //ManagementScope scope = new ManagementScope(@"\\.\root\cimv2", opts);
+                //SelectQuery diskQuery = new SelectQuery("SELECT * FROM Win32_LogicalDisk WHERE (MediaType != 0)");
+                //ManagementObjectSearcher searcher = new ManagementObjectSearcher(diskQuery);
+                //ManagementObjectCollection diskObjColl = searcher.Get();
+                //foreach (var disk in diskObjColl)
+                //{
+                //    string name = disk["VolumeName"].ToString();
+                //    if (!string.IsNullOrEmpty(name) && name.Equals(check))
+
                 foreach (var driveInfo in DriveInfo.GetDrives())
                 {
-                    if (driveInfo.IsReady && driveInfo.DriveType == DriveType.Removable)
+                    if (driveInfo.DriveType == DriveType.Removable && driveInfo.IsReady)
                     {
                         string label = driveInfo.VolumeLabel;
                         if (!string.IsNullOrEmpty(label) && label.Equals(check))
@@ -295,9 +306,9 @@ namespace PingDown
                     }
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                Program.Log("Drives bad");
+                Program.Log("Drives bad: " + ex.Message);
             }
             return false;
         }
