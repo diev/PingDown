@@ -13,37 +13,31 @@ init:
     tzutil /s "Russian Standard Time"
 
     git config --global core.autocrlf input
-assembly_info:
-  patch: true
-  file: '**\AssemblyInfo.*'
-  assembly_version: '{version}'
-  assembly_file_version: '{version}'
-  assembly_informational_version: '{version}'
 install:
 - ps: >-
-    $AssemblyFile = "$env:APPVEYOR_PROJECT_NAME\Properties\AssemblyInfo.cs"
+    $AppFile = 'vpn\always_vpn.cmd'
 
-    $RegularExpression = [regex] '^\[assembly: AssemblyFileVersion\(\"(\d*\.\d*)\.\d*\.\d*\"\)\]$'
+    $RegularExpression = [regex] 'version=(\d*\.\d*\.\d*)$'
 
-    $FileContent = Get-Content $AssemblyFile
+    $FileContent = Get-Content $AppFile
 
     foreach($content in $FileContent) {
       $match = [System.Text.RegularExpressions.Regex]::Match($content, $RegularExpression)
       if($match.Success) {
-        $ver = $match.groups[1].value
+        $env:VERSION = $match.groups[1].value
         break;
       }
     }
 
-    Update-AppveyorBuild -Version ("{0}.{1}" -f $ver, $env:APPVEYOR_BUILD_NUMBER)
+    Update-AppveyorBuild -Version ("{0} build {1}" -f $env:VERSION, $env:APPVEYOR_BUILD_NUMBER)
 
     $CommitDateTime = [datetime]::Parse($env:APPVEYOR_REPO_COMMIT_TIMESTAMP)
 
-    $env:BuildDate = $CommitDateTime.ToString('dd.MM.yyyy')
+    $env:BuildDate = $CommitDateTime.ToString('yyyy-MM-dd')
+
+    $env:Site = "http://{0}.github.io/{1}" -f $env:APPVEYOR_ACCOUNT_NAME, $env:APPVEYOR_PROJECT_NAME
 
     Write-Host "Building v$env:APPVEYOR_BUILD_VERSION dated $env:BuildDate"
-build:
-  verbosity: minimal
 before_package:
 - cmd: >-
     copy %APPVEYOR_PROJECT_NAME%\bin\%CONFIGURATION%\%APPVEYOR_PROJECT_NAME%.exe*
@@ -77,3 +71,7 @@ deploy:
 only_commits:
   files:
     - PingDown\
+skip_commits:
+  files:
+    - docs\*
+    - '**\*.md'
