@@ -15,11 +15,11 @@ init:
     git config --global core.autocrlf input
 install:
 - ps: >-
-    $AppFile = 'vpn\always_vpn.cmd'
+    $AssemblyFile = "$env:APPVEYOR_PROJECT_NAME\Properties\AssemblyInfo.cs"
 
-    $RegularExpression = [regex] 'version=(\d*\.\d*\.\d*)$'
+    $RegularExpression = [regex] '^\[assembly: AssemblyFileVersion\(\"(\d*\.\d*\.\d*)\.\d*\"\)\]$'
 
-    $FileContent = Get-Content $AppFile
+    $FileContent = Get-Content $AssemblyFile
 
     foreach($content in $FileContent) {
       $match = [System.Text.RegularExpressions.Regex]::Match($content, $RegularExpression)
@@ -29,7 +29,7 @@ install:
       }
     }
 
-    Update-AppveyorBuild -Version ("{0} build {1}" -f $env:VERSION, $env:APPVEYOR_BUILD_NUMBER)
+    Update-AppveyorBuild -Version ("{0}.{1}" -f $env:VERSION, $env:APPVEYOR_BUILD_NUMBER)
 
     $CommitDateTime = [datetime]::Parse($env:APPVEYOR_REPO_COMMIT_TIMESTAMP)
 
