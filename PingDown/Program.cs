@@ -1,7 +1,12 @@
-﻿//using Microsoft.Win32;
+﻿// Copyright (c) 2012-2020 Dmitrii Evdokimov. All rights reserved.
+// Licensed under the Apache License, Version 2.0.
+// Source https://github.com/diev/PingDown
+
+//using Microsoft.Win32;
 using System;
 using System.IO;
 using System.Reflection;
+//using System.Runtime.InteropServices;
 using System.ServiceProcess;
 using System.Text;
 
@@ -14,7 +19,7 @@ namespace PingDown
         public static readonly string AppDescription = AppDisplayName +
             " позволяет обнаруживать проблемы, связанные с работой компонентов сети.\n" +
             "Если отключить эту службу, сетевые кабели не смогут работать.";
-        public static readonly string AppVersion = Assembly.GetCallingAssembly().GetName().Version.ToString();
+        public static readonly string AppVersion = Assembly.GetCallingAssembly().GetName().Version.ToString(3);
         //public static readonly string AppRegistry = @"SYSTEM\CurrentControlSet\Services\" + AppName;
         //public static readonly string AppParameters = "Parameters";
         public static readonly string AppDir = AppDomain.CurrentDomain.BaseDirectory;
@@ -24,22 +29,25 @@ namespace PingDown
         public static string AppLog = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), Path.GetFileNameWithoutExtension(AppExe) + ".log");
         //public static string AppLog = AppExe + ".log";
 
-        public static bool TEST = false;
-        public static bool TESTonly = false;
+        /// <summary>
+        /// Option: Ping only (safely)
+        /// </summary>
+        public static bool PingOnly = false;
+        /// <summary>
+        /// Option: Test as reality (danger to switch off!)
+        /// </summary>
+        public static bool TestReal = false;
 
         public static void Main(string[] args)
         {
-            string info = AppName + " Ver." + AppVersion;
-            if (Environment.UserInteractive)
+            if (!Environment.UserInteractive)
             {
-                Console.WriteLine(info);
-            }
-            else
-            {
-                //Log(info);
                 RunService(args);
                 Environment.Exit(0);
             }
+
+            string info = AppName + " Ver." + AppVersion;
+            Console.WriteLine(info);
 
             if (args.Length == 0)
             {
@@ -90,17 +98,17 @@ namespace PingDown
 
                         case "ping":
                         case "p":
-                            cmd = "test";
+                            cmd = "ping";
                             argreq = true;
-                            TEST = true;
-                            TESTonly = true;
+                            TestReal = true;
+                            PingOnly = true;
                             break;
 
                         case "test":
                         case "t":
                             cmd = "test";
                             argreq = true;
-                            TEST = true;
+                            TestReal = true;
                             break;
 
                         default:
@@ -119,13 +127,13 @@ namespace PingDown
                         //    break;
 
                         case "ping":
-                            Log("Ping only");
+                            Log("Option: Ping only");
                             string[] p = { arg };
                             RunService(p);
                             break;
 
                         case "test":
-                            Log("Real test");
+                            Log("Option: Test as reality");
                             string[] t = { arg };
                             RunService(t);
                             break;
@@ -135,9 +143,11 @@ namespace PingDown
                             Usage();
                             break;
                     }
+
                     argreq = false;
                 }
             }
+
             if (argreq)
             {
                 Console.WriteLine("Parameter required for option -" + cmd);
@@ -163,7 +173,9 @@ namespace PingDown
             Console.WriteLine("Test hosts specified here else taken from config:");
             Console.WriteLine();
             Console.WriteLine("\t-p|ping host1,host2,host3|-\t - Ping only (safely)");
-            Console.WriteLine("\t-t|test host1,host2,host3|-\t - Real test (danger to switch off!)");
+            Console.WriteLine("\t-t|test host1,host2,host3|-\t - Test as reality (danger to switch off!)");
+            Console.WriteLine();
+            Console.WriteLine("Expiration: " + Expiration());
 
             Environment.Exit(ExitCode);
         }
@@ -234,7 +246,7 @@ namespace PingDown
             }
             if (stamped)
             {
-                sb.Append(DateTime.Now.ToString("dd.MM.yyyy HH:mm:ss " /*.ff"*/));
+                sb.Append(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss " /*.ff"*/));
             }
             if (newln)
             {
@@ -325,6 +337,11 @@ namespace PingDown
                     sw.Dispose();
                 }
             }
+        }
+
+        public static string Expiration()
+        {
+            return "EXP" + DateTime.Now.AddDays(7).ToString("yy-MM-dd");
         }
     }
 }

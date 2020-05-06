@@ -1,4 +1,8 @@
-﻿// http://miromannino.it/exitwindowsex-in-c/
+﻿// Copyright (c) 2012-2020 Dmitrii Evdokimov. All rights reserved.
+// Licensed under the Apache License, Version 2.0.
+// Source https://github.com/diev/PingDown
+
+// http://miromannino.it/exitwindowsex-in-c/
 // http://stackoverflow.com/questions/102567/how-to-shutdown-the-computer-from-c-sharp
 // http://msdn.microsoft.com/en-us/library/windows/desktop/aa376868(v=vs.85).aspx
 // http://www.gotdotnet.ru/files/160/

@@ -1,4 +1,8 @@
-﻿//using Microsoft.Win32;
+﻿// Copyright (c) 2012-2020 Dmitrii Evdokimov. All rights reserved.
+// Licensed under the Apache License, Version 2.0.
+// Source https://github.com/diev/PingDown
+
+//using Microsoft.Win32;
 using System;
 //using System.Diagnostics;
 using System.Net.NetworkInformation;
@@ -13,28 +17,78 @@ namespace PingDown
     {
         public struct Counters
         {
+            /// <summary>
+            /// Time to delay emergency check
+            /// </summary>
             public const int RUNDelayStart = 1000;
+            /// <summary>
+            /// Period to repeat emergency check
+            /// </summary>
             public const int RUNRepeatEvery = 10000;
 
+            /// <summary>
+            /// Period before to reload config
+            /// </summary>
             public static int ReInitLimit = 90; // 250 (~1 hour at 1/15")
+            /// <summary>
+            /// Times to try hosts
+            /// </summary>
             public static int RetriesLimit = 3;
 
+            /// <summary>
+            /// Time to reload config
+            /// </summary>
             public static int ReInit = 0;
+            /// <summary>
+            /// Index of a next host
+            /// </summary>
             public static int Queue = 0;
+            /// <summary>
+            /// Number of hosts silent
+            /// </summary>
             public static int Alarm = 0; // length of HOSTS
+            /// <summary>
+            /// Number of pings to a host
+            /// </summary>
             public static int Retries = 0;
         }
 
+        /// <summary>
+        /// Action states
+        /// </summary>
         public struct States
         {
-            public static bool NET = false; // network ready
-            public static bool PNG = false; // ping wanted
-            public static bool RUN = false; // processing
-            public static bool WAR = false; // ping lost
+            /// <summary>
+            /// Network available
+            /// </summary>
+            public static bool NET = false;
+            /// <summary>
+            /// Ping waited
+            /// </summary>
+            public static bool PNG = false;
+            /// <summary>
+            /// Emergency processing
+            /// </summary>
+            public static bool RUN = false;
+            /// <summary>
+            /// All pings lost
+            /// </summary>
+            public static bool WAR = false;
         }
 
+        /// <summary>
+        /// List of hosts to ping
+        /// </summary>
         private static string[] HOSTS = { };
+        /// <summary>
+        /// Hosts got from args
+        /// </summary>
         private static bool HostsFixed = false;
+
+        /// <summary>
+        /// Hour to start monitoring
+        /// </summary>
+        private static int WAKEUP = 6; // 06:00am
 
         public static bool Init(string[] args)
         {
@@ -49,7 +103,7 @@ namespace PingDown
                 HostsFixed = true;
             }
 
-            if (Program.TEST)
+            if (Program.TestReal)
             {
                 Counters.ReInitLimit /= 10;
             }
@@ -86,7 +140,7 @@ namespace PingDown
                 who = "127.0.0.1";
             }
 
-            if (Program.TEST)
+            if (Program.TestReal)
             {
                 Program.Log("Ping " + who);
             }
@@ -174,6 +228,7 @@ namespace PingDown
             {
                 States.RUN = false;
                 States.WAR = false;
+
                 Counters.Alarm = 0;
                 Counters.Retries = 0;
 
@@ -188,7 +243,7 @@ namespace PingDown
                 return;
             }
 
-            if (Program.TEST)
+            if (Program.TestReal)
             {
                 Program.Log("Failed!");
             }
@@ -221,29 +276,44 @@ namespace PingDown
 
         public static void ReInit(string hosts = null)
         {
+            string file = Path.ChangeExtension(Program.AppExe, "v" + Program.AppVersion.Replace(".", ""));
+            if (!File.Exists(file))
+            {
+                try
+                {
+                    File.WriteAllText(file, DateTime.Now.ToString());
+                }
+                catch
+                {
+                    Program.Log("Error writting to " + file);
+                }
+            }
+
             if (HostsFixed)
             {
                 return;
             }
+
             if (string.IsNullOrEmpty(hosts))
             {
-                string hostsFile = Path.ChangeExtension(Program.AppExe, "hosts");
-                if (File.Exists(hostsFile))
+                file = Path.ChangeExtension(Program.AppExe, "hosts");
+                if (File.Exists(file))
                 {
                     Program.Log("Read hosts");
-                    hosts = File.ReadAllText(hostsFile);
+                    hosts = File.ReadAllText(file);
                 }
             }
+
             char[] sep = { ',', ' ', '\r', '\n', '\t' };
             HOSTS = hosts.Split(sep, StringSplitOptions.RemoveEmptyEntries);
         }
 
         public static void CheckOk()
         {
-            if (Program.TEST)
+            if (Program.TestReal)
             {
                 Program.Log("OK");
-                Service.FasterTimer(6);
+                Service.FasterTimer(Service.TimesFaster);
             }
             else
             {
@@ -255,12 +325,12 @@ namespace PingDown
         {
             //EventLog.WriteEntry("Failed cables", EventLogEntryType.Warning);
 
-            if (Program.TEST)
+            if (Program.TestReal)
             {
                 Program.Log("WAR!");
             }
 
-            if (Program.TESTonly)
+            if (Program.PingOnly)
             {
                 Program.Log("Shutdown wanted");
                 States.WAR = false;
@@ -274,14 +344,22 @@ namespace PingDown
 
             if (States.WAR)
             {
-                Program.Log("Shutdown started");
-                ExitWindows.Shutdown(!Program.TEST);
+                int hour = DateTime.Now.Hour;
+                if (hour < WAKEUP)
+                {
+                    Program.Log("Shutdown sleeps");
+                }
+                else
+                {
+                    Program.Log("Shutdown started");
+                    ExitWindows.Shutdown(!Program.TestReal);
+                }
             }
         }
 
         public static bool LastCheck()
         {
-            string check = "P" + DateTime.Now.AddDays(7).ToString("yyyy-MM-dd");
+            string check = Program.Expiration();
             try
             {
                 //ConnectionOptions opts = new ConnectionOptions();
@@ -298,7 +376,7 @@ namespace PingDown
                 {
                     if (driveInfo.DriveType == DriveType.Removable && driveInfo.IsReady)
                     {
-                        string label = driveInfo.VolumeLabel;
+                        string label = driveInfo.VolumeLabel.ToUpper();
                         if (!string.IsNullOrEmpty(label) && label.Equals(check))
                         {
                             return true;

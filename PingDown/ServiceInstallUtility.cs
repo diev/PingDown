@@ -1,4 +1,8 @@
-﻿using System;
+﻿// Copyright (c) 2012-2020 Dmitrii Evdokimov. All rights reserved.
+// Licensed under the Apache License, Version 2.0.
+// Source https://github.com/diev/PingDown
+
+using System;
 using System.Configuration.Install;
 
 namespace PingDown

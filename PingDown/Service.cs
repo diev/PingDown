@@ -1,4 +1,8 @@
-﻿using System.Diagnostics;
+﻿// Copyright (c) 2012-2020 Dmitrii Evdokimov. All rights reserved.
+// Licensed under the Apache License, Version 2.0.
+// Source https://github.com/diev/PingDown
+
+using System.Diagnostics;
 using System.ServiceProcess;
 using System.Threading;
 
@@ -8,8 +12,18 @@ namespace PingDown
     {
         public static Timer JobTimer;
 
-        public const int DelayStart = 60000; //ms
-        public const int RepeatEvery = 60000; //ms
+        /// <summary>
+        /// Delay to start the service
+        /// </summary>
+        public const int DelayStart = 120000; //ms
+        /// <summary>
+        /// Period to repeat the service
+        /// </summary>
+        public const int RepeatEvery = 120000; //ms
+        /// <summary>
+        /// Times to run faster during tests
+        /// </summary>
+        public const int TimesFaster = 12; //RepeatEvery / TimesFaster ~ 10 sec
 
         public Service()
         {
@@ -41,9 +55,9 @@ namespace PingDown
                 TimerCallback timerCallback = Job.CheckState;
 
                 JobTimer = new Timer(timerCallback, timerEvent, DelayStart, RepeatEvery);
-                if (Program.TEST)
+                if (Program.TestReal)
                 {
-                    FasterTimer(6);
+                    FasterTimer(TimesFaster);
                 }
             }
             else
@@ -57,7 +71,7 @@ namespace PingDown
 
         public void StopService()
         {
-            if (Program.TEST && Job.States.WAR)
+            if (Program.TestReal && Job.States.WAR)
             {
                 EventLog.WriteEntry("Failed pings!", EventLogEntryType.Warning);
             }
