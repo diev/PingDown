@@ -1,6 +1,20 @@
-﻿// Copyright (c) 2012-2020 Dmitrii Evdokimov. All rights reserved.
-// Licensed under the Apache License, Version 2.0.
-// Source https://github.com/diev/PingDown
+﻿#region License
+//------------------------------------------------------------------------------
+// Copyright (c) Dmitrii Evdokimov
+// Source https://github.com/diev/
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// http://www.apache.org/licenses/LICENSE-2.0
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//------------------------------------------------------------------------------
+// https://msdn.microsoft.com/library/ms182161.aspx
+// https://msdn.microsoft.com/library/ms182319.aspx
 
 // http://miromannino.it/exitwindowsex-in-c/
 // http://stackoverflow.com/questions/102567/how-to-shutdown-the-computer-from-c-sharp
@@ -9,16 +23,14 @@
 
 // http://rsdn.ru/article/baseserv/svcadmin-1.xml
 // http://rsdn.ru/article/baseserv/svcadmin-2.xml
+#endregion
 
 using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
-static class ExitWindows
+public static class ExitWindows
 {
-    // https://msdn.microsoft.com/library/ms182161.aspx
-    // https://msdn.microsoft.com/library/ms182319.aspx
-
     internal static class NativeMethods
     {
         internal struct LUID
@@ -59,12 +71,11 @@ static class ExitWindows
         internal const short TOKEN_ADJUST_PRIVILEGES = 32;
         internal const short TOKEN_QUERY = 8;
 
-        internal static void getPrivileges()
+        internal static void GetPrivileges()
         {
-            IntPtr hToken;
             TOKEN_PRIVILEGES tkp;
 
-            OpenProcessToken(Process.GetCurrentProcess().Handle, TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, out hToken);
+            OpenProcessToken(Process.GetCurrentProcess().Handle, TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, out IntPtr hToken);
             tkp.PrivilegeCount = 1;
             tkp.Privileges.Attributes = SE_PRIVILEGE_ENABLED;
             LookupPrivilegeValue("", SE_SHUTDOWN_NAME, out tkp.Privileges.pLuid);
@@ -75,40 +86,24 @@ static class ExitWindows
     const ushort EWX_LOGOFF = 0;
     const ushort EWX_POWEROFF = 0x00000008;
     const ushort EWX_REBOOT = 0x00000002;
-    const ushort EWX_RESTARTAPPS = 0x00000040;
     const ushort EWX_SHUTDOWN = 0x00000001;
     const ushort EWX_FORCE = 0x00000004;
 
-    public static void Shutdown()
+    public static void Shutdown(bool force = false)
     {
-        Shutdown(false);
-    }
-
-    public static void Shutdown(bool force)
-    {
-        NativeMethods.getPrivileges();
+        NativeMethods.GetPrivileges();
         NativeMethods.ExitWindowsEx(EWX_SHUTDOWN | (uint)(force ? EWX_FORCE : 0) | EWX_POWEROFF, 0);
     }
 
-    public static void Reboot()
+    public static void Reboot(bool force = false)
     {
-        Reboot(false);
-    }
-
-    public static void Reboot(bool force)
-    {
-        NativeMethods.getPrivileges();
+        NativeMethods.GetPrivileges();
         NativeMethods.ExitWindowsEx(EWX_REBOOT | (uint)(force ? EWX_FORCE : 0), 0);
     }
 
-    public static void LogOff()
+    public static void LogOff(bool force = false)
     {
-        LogOff(false);
-    }
-
-    public static void LogOff(bool force)
-    {
-        NativeMethods.getPrivileges();
+        NativeMethods.GetPrivileges();
         NativeMethods.ExitWindowsEx(EWX_LOGOFF | (uint)(force ? EWX_FORCE : 0), 0);
     }
 }

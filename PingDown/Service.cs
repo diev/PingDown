@@ -1,88 +1,49 @@
-﻿// Copyright (c) 2012-2020 Dmitrii Evdokimov. All rights reserved.
-// Licensed under the Apache License, Version 2.0.
-// Source https://github.com/diev/PingDown
+﻿#region License
+//------------------------------------------------------------------------------
+// Copyright (c) Dmitrii Evdokimov
+// Source https://github.com/diev/
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// http://www.apache.org/licenses/LICENSE-2.0
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//------------------------------------------------------------------------------
+#endregion
 
-using System.Diagnostics;
 using System.ServiceProcess;
-using System.Threading;
 
 namespace PingDown
 {
-    class Service : ServiceBase
+    public class Service : ServiceBase
     {
-        public static Timer JobTimer;
-
-        /// <summary>
-        /// Delay to start the service
-        /// </summary>
-        public const int DelayStart = 120000; //ms
-        /// <summary>
-        /// Period to repeat the service
-        /// </summary>
-        public const int RepeatEvery = 120000; //ms
-        /// <summary>
-        /// Times to run faster during tests
-        /// </summary>
-        public const int TimesFaster = 12; //RepeatEvery / TimesFaster ~ 10 sec
-
         public Service()
         {
-            this.ServiceName = Program.AppName;
-            //this.AutoLog = true; // Program.TEST;
-            //this.CanPauseAndContinue = true;
-            //this.CanStop = true;
+            ServiceName = App.Name;
+            //CanPauseAndContinue = true;
+            //CanStop = true;
         }
 
-        public static void FasterTimer(int faster = 1)
+        public void StartService()
         {
-            if (faster == 0)
-            {
-                JobTimer.Change(Timeout.Infinite, Timeout.Infinite);
-            }
-            else
-            {
-                JobTimer.Change(RepeatEvery / faster, RepeatEvery / faster);
-            }
-        }
-
-        public void StartService(string[] args)
-        {
-            //Directory.SetCurrentDirectory(AppDomain.CurrentDomain.BaseDirectory);
-
-            if (Job.Init(args))
-            {
-                AutoResetEvent timerEvent = new AutoResetEvent(false);
-                TimerCallback timerCallback = Job.CheckState;
-
-                JobTimer = new Timer(timerCallback, timerEvent, DelayStart, RepeatEvery);
-                if (Program.TestReal)
-                {
-                    FasterTimer(TimesFaster);
-                }
-            }
-            else
-            {
-                EventLog.WriteEntry("No Init!", EventLogEntryType.Error);
-                StopService();
-                return;
-            }
-            Program.Log("Service started");
+            JobTimer.Start(Settings.DelayStart, Settings.RepeatEvery);
+            Helpers.Log(Messages.ServiceStarted);
         }
 
         public void StopService()
         {
-            if (Program.TestReal && Job.States.WAR)
-            {
-                EventLog.WriteEntry("Failed pings!", EventLogEntryType.Warning);
-            }
-            JobTimer.Dispose();
-            Program.Log("Service stopped");
+            JobTimer.Stop();
+            Helpers.Log(Messages.ServiceStopped);
         }
 
         protected override void OnStart(string[] args)
         {
             base.OnStart(args);
-            StartService(args);
+            StartService();
         }
 
         protected override void OnStop()
@@ -91,21 +52,21 @@ namespace PingDown
             StopService();
         }
 
-        //protected override void OnPause()
-        //{
-        //    base.OnPause();
-        //    FasterTimer(0);
-        //}
+        protected override void OnPause()
+        {
+            base.OnPause();
+            JobTimer.Pause();
+        }
 
-        //protected override void OnContinue()
-        //{
-        //    base.OnContinue();
-        //    FasterTimer();
-        //}
+        protected override void OnContinue()
+        {
+            base.OnContinue();
+            JobTimer.Continue(0, Settings.RepeatEvery);
+        }
 
         protected override void OnShutdown()
         {
-            Program.Log("Shutdown received");
+            Helpers.Log(Messages.ShutdownReceived);
             base.OnShutdown();
             StopService();
         }

@@ -1,6 +1,19 @@
-﻿// Copyright (c) 2012-2020 Dmitrii Evdokimov. All rights reserved.
-// Licensed under the Apache License, Version 2.0.
-// Source https://github.com/diev/PingDown
+﻿#region License
+//------------------------------------------------------------------------------
+// Copyright (c) Dmitrii Evdokimov
+// Source https://github.com/diev/
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// http://www.apache.org/licenses/LICENSE-2.0
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//------------------------------------------------------------------------------
+#endregion
 
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -12,7 +25,7 @@ using System.Resources;
 [assembly: AssemblyTitle("PingDown")]
 [assembly: AssemblyDescription("Служба сетевых кабелей")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("Cibank")]
+[assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("PingDown")]
 [assembly: AssemblyCopyright("Copyright © 2012-2020 Dmitrii Evdokimov")]
 [assembly: AssemblyTrademark("Дмитрий Евдокимов")]
@@ -36,6 +49,6 @@ using System.Resources;
 // Можно задать все значения или принять номер построения и номер редакции по умолчанию, 
 // используя "*", как показано ниже:
 // [assembly: AssemblyVersion("1.0.*")]
-[assembly: AssemblyVersion("1.7.0.0")]
-[assembly: AssemblyFileVersion("1.7.0.0")]
+[assembly: AssemblyVersion("2.0.0.0")]
+[assembly: AssemblyFileVersion("2.0.0.0")]
 [assembly: NeutralResourcesLanguage("ru")]
