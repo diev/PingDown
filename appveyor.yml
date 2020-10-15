@@ -50,7 +50,7 @@ build:
   verbosity: minimal
 before_package:
 - cmd: >-
-    copy bin\%CONFIGURATION%\%APPVEYOR_PROJECT_NAME%.exe*
+    copy %APPVEYOR_PROJECT_NAME%\bin\%CONFIGURATION%\%APPVEYOR_PROJECT_NAME%.exe*
 
     echo %SITE%>>readme.txt
 
