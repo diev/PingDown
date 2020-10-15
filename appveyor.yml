@@ -22,7 +22,7 @@ assembly_info:
   assembly_informational_version: '{version}'
 install:
 - ps: >-
-    $AssemblyFile = "Properties\AssemblyInfo.cs"
+    $AssemblyFile = "$env:APPVEYOR_PROJECT_NAME\Properties\AssemblyInfo.cs"
 
     $RegularExpression = [regex] '^\[assembly: AssemblyFileVersion\(\"(\d*\.\d*\.\d*)\.\d*\"\)\]$'
 
