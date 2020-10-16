@@ -25,7 +25,7 @@ namespace PingDown
         {
             ServiceName = App.Name;
             //CanPauseAndContinue = true;
-            //CanStop = true;
+            CanStop = true;
         }
 
         public void StartService()

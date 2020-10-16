@@ -23,12 +23,18 @@ namespace PingDown
     {
         private static Timer _timer;
 
+        private static int _savedDueTime = 0;
+        private static int _savedPeriod = 0;
+
         public static void Start(int dueTime, int period)
         {
             AutoResetEvent timerEvent = new AutoResetEvent(false);
             TimerCallback timerCallback = Elapsed;
 
             _timer = new Timer(timerCallback, timerEvent, dueTime, period);
+
+            _savedDueTime = dueTime;
+            _savedPeriod = period;
         }
 
         public static void Stop()
@@ -41,9 +47,17 @@ namespace PingDown
             _timer.Change(Timeout.Infinite, Timeout.Infinite);
         }
 
+        public static void Continue()
+        {
+            _timer.Change(_savedDueTime, _savedPeriod);
+        }
+
         public static void Continue(int dueTime, int period)
         {
             _timer.Change(dueTime, period);
+
+            _savedDueTime = dueTime;
+            _savedPeriod = period;
         }
 
         private static void Elapsed(object stateInfo)

@@ -135,10 +135,7 @@ namespace PingDown
 
         public static void RunService()
         {
-            var service = new Service
-            {
-                CanStop = Settings.Services
-            };
+            var service = new Service();
             var servicesToRun = new ServiceBase[] { service };
             ServiceBase.Run(servicesToRun);
         }

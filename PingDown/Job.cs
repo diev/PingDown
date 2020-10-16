@@ -18,21 +18,26 @@
 using System;
 using System.IO;
 using System.Net.NetworkInformation;
+using System.Text;
 using System.Threading;
 
 namespace PingDown
 {
     public static class Job
     {
+        const int _timeout = 1000;
+
         private static DateTime _timeToReload = DateTime.Now;
         private static States _currentState = States.NOT;
-        private static string _selectedHost;
+        private static string _selectedHost = Settings.Hosts[0];
 
         public static void ReInit()
         {
             Settings.Load();
 
             _timeToReload = DateTime.Now + Settings.ReloadEvery;
+            _selectedHost = Settings.Hosts[0];
+
             JobTimer.Continue(Settings.RepeatEvery, Settings.RepeatEvery);
 
             string app = Path.ChangeExtension(App.Exe, null);
@@ -55,7 +60,17 @@ namespace PingDown
                     Helpers.Log(Messages.DownFlag);
                 }
                 File.Delete(down);
-                CheckWar();
+                CheckDown();
+            }
+
+            string update = app + ".update";
+            if (File.Exists(update))
+            {
+                if (Environment.UserInteractive)
+                {
+                    Helpers.Log(Messages.UpdateFlag);
+                }
+                Helpers.InstallUpdate(update);
             }
 
             string ver = app + ".ver";
@@ -67,16 +82,6 @@ namespace PingDown
                 }
                 File.Delete(ver);
                 File.WriteAllText(app + ".v" + App.Version, DateTime.Now.ToString());
-            }
-
-            string update = app + ".update";
-            if (File.Exists(update))
-            {
-                if (Environment.UserInteractive)
-                {
-                    Helpers.Log(Messages.UpdateFlag);
-                }
-                Helpers.InstallUpdate(update);
             }
         }
 
@@ -94,118 +99,155 @@ namespace PingDown
                 ReInit();
             }
 
-            switch (_currentState)
+            JobTimer.Pause();
+
+            if ((_currentState == States.NOT) && SendPing("127.0.0.1"))
             {
-                case States.NOT:
-                    if (SendPing("127.0.0.1"))
-                    {
-                        _selectedHost = Settings.Hosts[0];
-                        SendPings(Settings.Hosts);
-                    }
-                    break;
-
-                case States.NET:
-                    _currentState = States.RUN;
-                    if (!SendPing(_selectedHost))
-                    {
-                        SendPings(Settings.Hosts);
-                    }
-                    break;
-
-                case States.RUN:
-                case States.DOWN:
-                    _currentState = States.DOWN;
-                    if (!SendPings(Settings.Hosts))
-                    {
-                        CheckWar();
-                    }
-                    break;
-
-                default:
-                    SendPings(Settings.Hosts);
-                    break;
+                Thread.Sleep(_timeout);
+                _currentState = States.NET;
             }
+
+            if ((_currentState == States.NET) && !SendPing(_selectedHost))
+            {
+                _currentState = States.RUN;
+            }
+
+            if (_currentState == States.RUN)
+            {
+                _currentState = States.DOWN;
+
+                int retries = 4;
+                do
+                {
+                    Thread.Sleep(_timeout);
+                    if (--retries == 0)
+                    {
+                        break;
+                    }
+                }
+                while (!SendPing(_selectedHost));
+            }
+
+            if ((_currentState == States.DOWN) && !CheckDown())
+            {
+                _currentState = States.NET;
+            }
+
+            JobTimer.Continue();
         }
 
         private static bool SendPing(string host)
         {
-            return SendPings(new string[] { host });
+            const int routers = 4;
+            const string data = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+            bool result = false;
+
+            Ping ping = new Ping();
+            try
+            {
+                PingOptions options = new PingOptions(routers, true);
+                byte[] buffer = Encoding.ASCII.GetBytes(data);
+
+                PingReply reply = ping.Send(host, _timeout, buffer, options);
+
+                if (reply != null)
+                {
+                    result = reply.Status == IPStatus.Success;
+                }
+            }
+            finally
+            {
+                ping.Dispose();
+            }
+
+            if (Environment.UserInteractive)
+            {
+                Helpers.Log(result ? host : "Failed " + host);
+            }
+
+            return result;
         }
 
-        private static bool SendPings(string[] hosts)
+        private static bool SendPings()
         {
-            const int timeout = 1000;
-
+            string[] hosts = Settings.Hosts;
             int counter = hosts.Length;
             var sync = new object();
             var isReady = new ManualResetEvent(false);
+            bool result = false;
 
             foreach (string host in hosts)
             {
                 Ping ping = new Ping();
-                ping.PingCompleted += delegate (object sender, PingCompletedEventArgs e)
+                try
                 {
-                    lock (sync)
+                    ping.PingCompleted += delegate (object sender, PingCompletedEventArgs e)
                     {
-                        ping.Dispose();
-
-                        PingReply reply = e.Reply;
-                        if (reply != null && reply.Status == IPStatus.Success)
+                        lock (sync)
                         {
-                            _currentState = States.NET;
-                            _selectedHost = host;
+                            ping.Dispose();
 
-                            if (Environment.UserInteractive)
+                            PingReply reply = e.Reply;
+                            if (reply != null && reply.Status == IPStatus.Success)
                             {
-                                Helpers.Log(host);
+                                result = true;
+                                _selectedHost = host;
+                            }
+
+                            if (--counter == 0)
+                            {
+                                isReady.Set();
                             }
                         }
-                        else if (Environment.UserInteractive)
-                        {
-                            Helpers.Log("Failed " + host);
-                        }
+                    };
 
-                        if (--counter == 0)
-                        {
-                            isReady.Set();
-                        }
+                    ping.SendAsync(host, _timeout, null);
+                }
+                catch
+                {
+                    if (Environment.UserInteractive)
+                    {
+                        Helpers.Log("Failed ping " + host);
                     }
-                };
-
-                ping.SendAsync(host, timeout, null);
+                }
+                finally
+                {
+                    if (ping != null)
+                    {
+                        ping.Dispose();
+                    }
+                }
             }
 
             isReady.WaitOne();
-            return _currentState == States.NET;
+            return result;
         }
 
-        private static void CheckWar()
+        private static bool CheckDown()
         {
             if (Environment.UserInteractive)
             {
                 if (CheckBypass())
                 {
                     Helpers.Log(Messages.Passed);
-                    _currentState = States.NET;
-                    return;
+                    return false;
                 }
 
                 if (!Settings.Force)
                 {
                     Helpers.Log(Messages.ShutdownWanted);
-                    _currentState = States.NET;
-                    return;
+                    return false;
                 }
 
                 Helpers.Log(Messages.ShutdownStarted);
             }
             else if (CheckBypass())
             {
-                _currentState = States.NET;
-                return;
+                return false;
             }
 
             ExitWindows.Shutdown(true);
+            return true;
         }
 
         private static bool CheckBypass()

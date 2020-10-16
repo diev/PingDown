@@ -86,14 +86,11 @@ namespace PingDown
                 value = settings["DelayStart"] ?? "0:02";
                 DelayStart = (int)TimeSpan.Parse(value).TotalMilliseconds;
 
-                value = settings["RepeatEvery"] ?? "0:02";
+                value = settings["RepeatEvery"] ?? "0:01";
                 RepeatEvery = (int)TimeSpan.Parse(value).TotalMilliseconds;
 
-                value = settings["ReloadEvery"] ?? "0:30";
+                value = settings["ReloadEvery"] ?? "0:05";
                 ReloadEvery = TimeSpan.Parse(value);
-
-                value = settings["Services"] ?? "0";
-                Services = value.Equals("1");
 
                 value = settings["Hosts"] ?? "10.0.2.1";
                 Hosts = Helpers.ReadList(value);
@@ -111,9 +108,6 @@ namespace PingDown
 
                     value = settings["TestReloadEvery"] ?? "0:00:30";
                     ReloadEvery = TimeSpan.Parse(value);
-
-                    value = settings["TestServices"] ?? "1";
-                    Services = value.Equals("1");
 
                     value = settings["TestHosts"] ?? "10.0.2.1";
                     Hosts = Helpers.ReadList(value);
