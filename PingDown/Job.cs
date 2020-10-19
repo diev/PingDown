@@ -25,7 +25,7 @@ namespace PingDown
 {
     public static class Job
     {
-        const int _timeout = 1000;
+        const int _timeout = 4000;
 
         private static DateTime _timeToReload = DateTime.Now;
         private static States _currentState = States.NOT;
@@ -142,9 +142,10 @@ namespace PingDown
             const string data = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
             bool result = false;
 
-            Ping ping = new Ping();
+            Ping ping = null;
             try
             {
+                ping = new Ping();
                 PingOptions options = new PingOptions(routers, true);
                 byte[] buffer = Encoding.ASCII.GetBytes(data);
 
@@ -155,9 +156,15 @@ namespace PingDown
                     result = reply.Status == IPStatus.Success;
                 }
             }
+            catch
+            {
+            }
             finally
             {
-                ping.Dispose();
+                if (ping != null)
+                {
+                    ping.Dispose();
+                }
             }
 
             if (Environment.UserInteractive)

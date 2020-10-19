@@ -81,35 +81,91 @@ namespace PingDown
                 string value;
 
                 value = settings["Wakeup"] ?? "6:00";
-                Wakeup = TimeSpan.Parse(value);
+                if (TimeSpan.TryParse(value, out TimeSpan wakeup))
+                {
+                    Wakeup = wakeup;
+                }
+                else
+                {
+                    Helpers.Log("Failed config:Wakeup");
+                }
 
                 value = settings["DelayStart"] ?? "0:02";
-                DelayStart = (int)TimeSpan.Parse(value).TotalMilliseconds;
+                if (TimeSpan.TryParse(value, out TimeSpan delayStart))
+                {
+                    DelayStart = (int)delayStart.TotalMilliseconds;
+                }
+                else
+                {
+                    Helpers.Log("Failed config:DelayStart");
+                }
 
                 value = settings["RepeatEvery"] ?? "0:01";
-                RepeatEvery = (int)TimeSpan.Parse(value).TotalMilliseconds;
+                if (TimeSpan.TryParse(value, out TimeSpan repeatEvery))
+                {
+                    RepeatEvery = (int)repeatEvery.TotalMilliseconds;
+                }
+                else
+                {
+                    Helpers.Log("Failed config:RepeatEvery");
+                }
 
                 value = settings["ReloadEvery"] ?? "0:05";
-                ReloadEvery = TimeSpan.Parse(value);
+                if (TimeSpan.TryParse(value, out TimeSpan reloadEvery))
+                {
+                    ReloadEvery = reloadEvery;
+                }
+                else
+                {
+                    Helpers.Log("Failed config:ReloadEvery");
+                }
 
-                value = settings["Hosts"] ?? "10.0.2.1";
+                value = settings["Hosts"] ?? "10.0.2.2";
                 Hosts = Helpers.ReadList(value);
 
                 if (Environment.UserInteractive)
                 {
                     value = settings["TestWakeup"] ?? "6:00";
-                    Wakeup = TimeSpan.Parse(value);
+                    if (TimeSpan.TryParse(value, out wakeup))
+                    {
+                        Wakeup = wakeup;
+                    }
+                    else
+                    {
+                        Helpers.Log("Failed config:TestWakeup");
+                    }
 
                     value = settings["TestDelayStart"] ?? "0:00:02";
-                    DelayStart = (int)TimeSpan.Parse(value).TotalMilliseconds;
+                    if (TimeSpan.TryParse(value, out delayStart))
+                    {
+                        DelayStart = (int)delayStart.TotalMilliseconds;
+                    }
+                    else
+                    {
+                        Helpers.Log("Failed config:TestDelayStart");
+                    }
 
                     value = settings["TestRepeatEvery"] ?? "0:00:10";
-                    RepeatEvery = (int)TimeSpan.Parse(value).TotalMilliseconds;
+                    if (TimeSpan.TryParse(value, out repeatEvery))
+                    {
+                        RepeatEvery = (int)repeatEvery.TotalMilliseconds;
+                    }
+                    else
+                    {
+                        Helpers.Log("Failed config:TestRepeatEvery");
+                    }
 
                     value = settings["TestReloadEvery"] ?? "0:00:30";
-                    ReloadEvery = TimeSpan.Parse(value);
+                    if (TimeSpan.TryParse(value, out reloadEvery))
+                    {
+                        ReloadEvery = reloadEvery;
+                    }
+                    else
+                    {
+                        Helpers.Log("Failed config:TestReloadEvery");
+                    }
 
-                    value = settings["TestHosts"] ?? "10.0.2.1";
+                    value = settings["TestHosts"] ?? "10.0.2.2";
                     Hosts = Helpers.ReadList(value);
                 }
 
