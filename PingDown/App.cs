@@ -67,7 +67,7 @@ namespace PingDown
             DisplayName = d.Description;
             Description = DisplayName +
                 " позволяет обнаруживать проблемы, связанные с работой компонентов сети.\n" +
-                "Если отключить эту службу, сетевые кабели не смогут работать.";
+                "Если отключить эту службу, сетевые кабели не смогут работать. (v" + Version + ")";
 
             //var c = Attribute.GetCustomAttribute(assembly, typeof(AssemblyCopyrightAttribute)) as AssemblyCopyrightAttribute;
             //string C = c.Copyright.Replace("\u00a9", "(c)");

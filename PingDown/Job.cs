@@ -185,9 +185,10 @@ namespace PingDown
 
             foreach (string host in hosts)
             {
-                Ping ping = new Ping();
+                Ping ping = null;
                 try
                 {
+                    ping = new Ping();
                     ping.PingCompleted += delegate (object sender, PingCompletedEventArgs e)
                     {
                         lock (sync)

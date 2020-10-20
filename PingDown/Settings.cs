@@ -120,7 +120,7 @@ namespace PingDown
                     Helpers.Log("Failed config:ReloadEvery");
                 }
 
-                value = settings["Hosts"] ?? "10.0.2.2";
+                value = settings["Hosts"] ?? "10.10.10.10";
                 Hosts = Helpers.ReadList(value);
 
                 if (Environment.UserInteractive)
@@ -165,7 +165,7 @@ namespace PingDown
                         Helpers.Log("Failed config:TestReloadEvery");
                     }
 
-                    value = settings["TestHosts"] ?? "10.0.2.2";
+                    value = settings["TestHosts"] ?? "10.10.10.10";
                     Hosts = Helpers.ReadList(value);
                 }
 
