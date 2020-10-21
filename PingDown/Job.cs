@@ -25,7 +25,9 @@ namespace PingDown
 {
     public static class Job
     {
-        const int _timeout = 4000;
+        const int _timeout = 10000; // ms
+        const int _retries = 5;
+        const int _routers = 16; // default 128
 
         private static DateTime _timeToReload = DateTime.Now;
         private static States _currentState = States.NOT;
@@ -36,9 +38,6 @@ namespace PingDown
             Settings.Load();
 
             _timeToReload = DateTime.Now + Settings.ReloadEvery;
-            _selectedHost = Settings.Hosts[0];
-
-            JobTimer.Continue(Settings.RepeatEvery, Settings.RepeatEvery);
 
             string app = Path.ChangeExtension(App.Exe, null);
 
@@ -83,13 +82,15 @@ namespace PingDown
                 File.Delete(ver);
                 File.WriteAllText(app + ".v" + App.Version, DateTime.Now.ToString());
             }
+
+            JobTimer.Continue(Settings.RepeatEvery, Settings.RepeatEvery);
         }
 
         public static void CheckState()
         {
             DateTime time = DateTime.Now;
 
-            if (time.TimeOfDay < Settings.Wakeup)
+            if (time.TimeOfDay > Settings.Sleep || time.TimeOfDay < Settings.Wakeup)
             {
                 return;
             }
@@ -101,36 +102,52 @@ namespace PingDown
 
             JobTimer.Pause();
 
-            if ((_currentState == States.NOT) && SendPing("127.0.0.1"))
+            if (_currentState == States.NOT)
             {
-                Thread.Sleep(_timeout);
-                _currentState = States.NET;
+                if (SendPing("127.0.0.1"))
+                {
+                    Thread.Sleep(_timeout);
+                    _currentState = States.NET;
+                }
             }
 
-            if ((_currentState == States.NET) && !SendPing(_selectedHost))
+            if (_currentState == States.NET)
             {
-                _currentState = States.RUN;
+                if (!SendPing(_selectedHost))
+                {
+                    _currentState = States.RUN;
+                }
             }
 
             if (_currentState == States.RUN)
             {
                 _currentState = States.DOWN;
 
-                int retries = 4;
-                do
+                int retries = _retries;
+                while (retries > 0)
                 {
                     Thread.Sleep(_timeout);
-                    if (--retries == 0)
+                    if (Environment.UserInteractive)
                     {
-                        break;
+                        Helpers.Log("Retries " + retries.ToString());
                     }
+                    
+                    if (SendPings())
+                    {
+                        _currentState = States.NET;
+                        retries = 0;
+                    }
+
+                    retries--;
                 }
-                while (!SendPing(_selectedHost));
             }
 
-            if ((_currentState == States.DOWN) && !CheckDown())
+            if (_currentState == States.DOWN)
             {
-                _currentState = States.NET;
+                if (!CheckDown())
+                {
+                    _currentState = States.NET;
+                }
             }
 
             JobTimer.Continue();
@@ -138,7 +155,7 @@ namespace PingDown
 
         private static bool SendPing(string host)
         {
-            const int routers = 4;
+            const int routers = _routers;
             const string data = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
             bool result = false;
 
@@ -179,6 +196,8 @@ namespace PingDown
         {
             string[] hosts = Settings.Hosts;
             int counter = hosts.Length;
+            string selected = null;
+
             var sync = new object();
             var isReady = new ManualResetEvent(false);
             bool result = false;
@@ -196,10 +215,19 @@ namespace PingDown
                             ping.Dispose();
 
                             PingReply reply = e.Reply;
-                            if (reply != null && reply.Status == IPStatus.Success)
+                            if (!result && reply != null && reply.Status == IPStatus.Success)
                             {
                                 result = true;
-                                _selectedHost = host;
+                                selected = host;
+
+                                if (Environment.UserInteractive)
+                                {
+                                    Helpers.Log("Selected " + host);
+                                }
+                            }
+                            else if (Environment.UserInteractive)
+                            {
+                                Helpers.Log("Failed " + host);
                             }
 
                             if (--counter == 0)
@@ -215,7 +243,7 @@ namespace PingDown
                 {
                     if (Environment.UserInteractive)
                     {
-                        Helpers.Log("Failed ping " + host);
+                        Helpers.Log("Error " + host);
                     }
                 }
                 finally
@@ -228,6 +256,10 @@ namespace PingDown
             }
 
             isReady.WaitOne();
+            if (selected != null)
+            {
+                _selectedHost = selected;
+            }
             return result;
         }
 
@@ -246,20 +278,25 @@ namespace PingDown
                     Helpers.Log(Messages.ShutdownWanted);
                     return false;
                 }
-
-                Helpers.Log(Messages.ShutdownStarted);
             }
             else if (CheckBypass())
             {
                 return false;
             }
 
+            Helpers.Log(Messages.ShutdownStarted);
             ExitWindows.Shutdown(true);
             return true;
         }
 
         private static bool CheckBypass()
         {
+            string file = Path.ChangeExtension(App.Exe, "pass");
+            if (File.Exists(file))
+            {
+                return true;
+            }
+
             string check = Helpers.Expiration();
             try
             {

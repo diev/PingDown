@@ -103,10 +103,7 @@ namespace PingDown
 
             File.WriteAllText(cmd, sb.ToString(), Encoding.GetEncoding(866));
 
-            if (!Environment.UserInteractive)
-            {
-                Process.Start("cmd.exe", "/c " + cmd);
-            }
+            Process.Start("cmd.exe", "/c " + cmd);
         }
     }
 }

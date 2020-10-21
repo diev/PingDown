@@ -24,6 +24,11 @@ namespace PingDown
     public static class Settings
     {
         /// <summary>
+        /// Time to stop monitoring
+        /// </summary>
+        public static TimeSpan Sleep;
+
+        /// <summary>
         /// Time to start monitoring
         /// </summary>
         public static TimeSpan Wakeup;
@@ -80,6 +85,16 @@ namespace PingDown
                 var settings = ConfigurationManager.AppSettings;
                 string value;
 
+                value = settings["Sleep"] ?? "22:00";
+                if (TimeSpan.TryParse(value, out TimeSpan sleep))
+                {
+                    Sleep = sleep;
+                }
+                else
+                {
+                    Helpers.Log("Failed config:Sleep");
+                }
+
                 value = settings["Wakeup"] ?? "6:00";
                 if (TimeSpan.TryParse(value, out TimeSpan wakeup))
                 {
@@ -125,6 +140,16 @@ namespace PingDown
 
                 if (Environment.UserInteractive)
                 {
+                    value = settings["Sleep"] ?? "22:00";
+                    if (TimeSpan.TryParse(value, out sleep))
+                    {
+                        Sleep = sleep;
+                    }
+                    else
+                    {
+                        Helpers.Log("Failed config:TestSleep");
+                    }
+
                     value = settings["TestWakeup"] ?? "6:00";
                     if (TimeSpan.TryParse(value, out wakeup))
                     {
