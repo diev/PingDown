@@ -1,12 +1,14 @@
 ﻿#region License
 //------------------------------------------------------------------------------
 // Copyright (c) Dmitrii Evdokimov
-// Source https://github.com/diev/
+// Open source software https://github.com/diev/
 // 
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// http://www.apache.org/licenses/LICENSE-2.0
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -27,7 +29,7 @@ using System.Resources;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("PingDown")]
-[assembly: AssemblyCopyright("Copyright © 2012-2020 Dmitrii Evdokimov")]
+[assembly: AssemblyCopyright("Copyright © 2012-2022 Dmitrii Evdokimov")]
 [assembly: AssemblyTrademark("Дмитрий Евдокимов")]
 [assembly: AssemblyCulture("")]
 
@@ -49,6 +51,6 @@ using System.Resources;
 // Можно задать все значения или принять номер построения и номер редакции по умолчанию, 
 // используя "*", как показано ниже:
 // [assembly: AssemblyVersion("1.0.*")]
-[assembly: AssemblyVersion("2.1.0.0")]
-[assembly: AssemblyFileVersion("2.1.0.0")]
+[assembly: AssemblyVersion("3.0.0.0")]
+[assembly: AssemblyFileVersion("3.0.0.0")]
 [assembly: NeutralResourcesLanguage("ru")]

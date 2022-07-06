@@ -1,107 +1,184 @@
-﻿using System;
-using System.Text;
-using System.Net;
+﻿#region License
+//------------------------------------------------------------------------------
+// Copyright (c) Dmitrii Evdokimov
+// Open source software https://github.com/diev/
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//------------------------------------------------------------------------------
+// https://stackoverflow.com/questions/13634868/get-the-default-gateway
+#endregion
+
+using System;
+using System.Linq;
 using System.Net.NetworkInformation;
-using System.ComponentModel;
+using System.Text;
 using System.Threading;
 
 namespace PingDown
 {
-    class Pinger
+    public static class Pinger
     {
-        private static bool Result = false;
+        private static readonly byte[] _buffer = Encoding.ASCII.GetBytes("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+        private static int _timeout;
+        private static PingOptions _options;
+        private static string _selectedHost;
 
-        public static bool Try(string who)
+        public static bool Ready()
         {
-            // http://msdn.microsoft.com/en-us/library/ms229713.aspx
-            //string who = args[0];
-            if (who.Length == 0)
-                throw new ArgumentException("Ping needs a host or IP Address.");
-            Result = false;
-            AutoResetEvent waiter = new AutoResetEvent(false);
+            bool result = false;
+            var waiter = new ManualResetEvent(false);
+            var ping = new Ping();
 
-            Ping pingSender = new Ping();
+            ping.PingCompleted += (s, e) =>
+            {
+                ping.Dispose();
 
-            // When the PingCompleted event is raised,
-            // the PingCompletedCallback method is called.
-            pingSender.PingCompleted += new PingCompletedEventHandler(PingCompletedCallback);
+                if (e.Reply.Status == IPStatus.Success)
+                {
+                    Helpers.LogInteractive("Ready");
+                    result = true;
+                    waiter.Set();
+                }
+            };
 
-            // Create a buffer of 32 bytes of data to be transmitted.
-            string data = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
-            byte[] buffer = Encoding.ASCII.GetBytes(data);
-
-            // Wait 12 seconds for a reply.
-            int timeout = 12000;
-
-            // Set options for transmission:
-            // The data can go through 64 gateways or routers
-            // before it is destroyed, and the data packet
-            // cannot be fragmented.
-            PingOptions options = new PingOptions(64, true);
-
-            Console.WriteLine("Time to live: {0}", options.Ttl);
-            Console.WriteLine("Don't fragment: {0}", options.DontFragment);
-
-            // Send the ping asynchronously.
-            // Use the waiter as the user token.
-            // When the callback completes, it can wake up this thread.
-            pingSender.SendAsync(who, timeout, buffer, options, waiter);
-
-            // Prevent this example application from ending.
-            // A real application should do something useful
-            // when possible.
+            _timeout = Settings.Timeout;
+            _options = new PingOptions(Settings.Gateways, true);
+            ping.SendAsync("127.0.0.1", _timeout, _buffer, _options, waiter);
             waiter.WaitOne();
-            Console.WriteLine("Ping example completed.");
-
-            return Result;
+            return result;
         }
 
-        public static void PingCompletedCallback(object sender, PingCompletedEventArgs e)
+        public static bool Send()
         {
-            // If the operation was canceled, display a message to the user.
-            if (e.Cancelled)
-            {
-                Console.WriteLine("Ping canceled.");
+            _timeout = Settings.Timeout;
+            _options = new PingOptions(Settings.Gateways, true);
 
-                // Let the main thread resume. 
-                // UserToken is the AutoResetEvent object that the main thread 
-                // is waiting for.
-                ((AutoResetEvent)e.UserState).Set();
+            if (Send(_selectedHost ?? Settings.Hosts[0]))
+            {
+                return true;
             }
 
-            // If an error occurred, display the exception to the user.
-            if (e.Error != null)
+            if (Send(Settings.Hosts, Settings.AlarmRetries))
             {
-                Console.WriteLine("Ping failed:");
-                Console.WriteLine(e.Error.ToString());
-
-                // Let the main thread resume. 
-                ((AutoResetEvent)e.UserState).Set();
+                return true;
             }
 
-            PingReply reply = e.Reply;
-
-            DisplayReply(reply);
-
-            // Let the main thread resume.
-            ((AutoResetEvent)e.UserState).Set();
+            return false;
         }
 
-        public static void DisplayReply(PingReply reply)
+        public static bool Send(string host)
         {
-            if (reply == null)
-                return;
+            bool result = false;
+            var waiter = new ManualResetEvent(false);
+            var ping = new Ping();
 
-            Console.WriteLine("ping status: {0}", reply.Status);
-            if (reply.Status == IPStatus.Success)
+            ping.PingCompleted += (s, e) =>
             {
-                Result = true;
-                Console.WriteLine("Address: {0}", reply.Address.ToString());
-                Console.WriteLine("RoundTrip time: {0}", reply.RoundtripTime);
-                Console.WriteLine("Time to live: {0}", reply.Options.Ttl);
-                Console.WriteLine("Don't fragment: {0}", reply.Options.DontFragment);
-                Console.WriteLine("Buffer size: {0}", reply.Buffer.Length);
+                ping.Dispose();
+
+                if (e.Reply.Status == IPStatus.Success)
+                {
+                    Helpers.LogInteractive(host);
+                    result = true;
+                }
+                else
+                {
+                    Helpers.LogInteractive(host + " failed!");
+                }
+
+                waiter.Set();
+            };
+
+            ping.SendAsync(host, _timeout, _buffer, _options, waiter);
+            waiter.WaitOne();
+            return result;
+        }
+        
+        public static bool Send(string[] hosts, int retries)
+        {
+            bool result = false;
+
+            for (int i = retries; i > 0; i--)
+            {
+                Helpers.LogInteractive($"Retries: {i}");
+                var waiter = new ManualResetEvent(false);
+                var sync = new object();
+                int counter = hosts.Length;
+
+                foreach (string h in hosts)
+                {
+                    string host = h; // required to pass the value to a delegate!
+                    var ping = new Ping();
+
+                    ping.PingCompleted += (s, e) =>
+                    {
+                        lock (sync)
+                        {
+                            ping.Dispose();
+
+                            if (e.Reply.Status == IPStatus.Success)
+                            {
+                                Helpers.LogInteractive(host);
+
+                                if (!host.StartsWith("127.") && !host.Equals("0.0.0.0"))
+                                {
+                                    _selectedHost = host;
+                                }
+
+                                result = true;
+                                waiter.Set();
+                            }
+                            else
+                            {
+                                Helpers.LogInteractive(host + " fail!");
+                            }
+
+                            if (--counter == 0)
+                            {
+                                waiter.Set();
+                            }
+                        }
+                    };
+
+                    ping.SendAsync(host, _timeout, _buffer, _options, waiter);
+                }
+
+                waiter.WaitOne();
+
+                if (result)
+                {
+                    return result;
+                }
+
+                Thread.Sleep(Settings.AlarmEvery);
             }
+
+            return result;
+        }
+
+        public static string[] GetGateways()
+        {
+            return NetworkInterface
+                .GetAllNetworkInterfaces()
+                .Where(n => n.OperationalStatus == OperationalStatus.Up)
+                .Where(n => n.NetworkInterfaceType != NetworkInterfaceType.Loopback)
+                .SelectMany(n => n.GetIPProperties()?.GatewayAddresses)
+                .Select(g => g?.Address)
+                .Where(a => a != null)
+                .Where(a => a.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+                .Where(a => Array.FindIndex(a.GetAddressBytes(), b => b != 0) >= 0)
+                .Select(a => a.ToString())
+                .ToArray();
         }
     }
 }

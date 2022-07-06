@@ -1,12 +1,14 @@
 ﻿#region License
 //------------------------------------------------------------------------------
 // Copyright (c) Dmitrii Evdokimov
-// Source https://github.com/diev/
+// Open source software https://github.com/diev/
 // 
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// http://www.apache.org/licenses/LICENSE-2.0
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -17,21 +19,20 @@
 
 using System;
 using System.IO;
-using System.Net.NetworkInformation;
-using System.Text;
 using System.Threading;
 
 namespace PingDown
 {
     public static class Job
     {
-        const int _timeout = 10000; // ms
-        const int _retries = 5;
-        const int _routers = 16; // default 128
+        private static readonly string PingFlag = Path.ChangeExtension(App.Exe, "ping");
+        private static readonly string DownFlag = Path.ChangeExtension(App.Exe, "down");
+        private static readonly string UpdateFlag = Path.ChangeExtension(App.Exe, "update");
+        private static readonly string VersionFlag = Path.ChangeExtension(App.Exe, "ver");
+        private static readonly string PassFlag = Path.ChangeExtension(App.Exe, "pass");
 
         private static DateTime _timeToReload = DateTime.Now;
         private static States _currentState = States.NOT;
-        private static string _selectedHost = Settings.Hosts[0];
 
         public static void ReInit()
         {
@@ -39,48 +40,35 @@ namespace PingDown
 
             _timeToReload = DateTime.Now + Settings.ReloadEvery;
 
-            string app = Path.ChangeExtension(App.Exe, null);
-
-            string ping = app + ".ping";
-            if (File.Exists(ping))
+            if (File.Exists(PingFlag))
             {
-                if (Environment.UserInteractive)
-                {
-                    Helpers.Log(Messages.PingFlag);
-                }
-                File.Delete(ping);
+                Helpers.LogInteractive(Messages.PingFlag);
+                File.Delete(PingFlag);
             }
 
-            string down = app + ".down";
-            if (File.Exists(down))
+            if (File.Exists(DownFlag))
             {
-                if (Environment.UserInteractive)
-                {
-                    Helpers.Log(Messages.DownFlag);
-                }
-                File.Delete(down);
+                Helpers.LogInteractive(Messages.DownFlag);
+                File.Delete(DownFlag);
+
                 CheckDown();
             }
 
-            string update = app + ".update";
-            if (File.Exists(update))
+            if (File.Exists(UpdateFlag))
             {
-                if (Environment.UserInteractive)
-                {
-                    Helpers.Log(Messages.UpdateFlag);
-                }
-                Helpers.InstallUpdate(update);
+                Helpers.LogInteractive(Messages.UpdateFlag);
+                //File.Delete(UpdateFlag); //NO, it's the update file itself!
+
+                Helpers.InstallUpdate(UpdateFlag);
             }
 
-            string ver = app + ".ver";
-            if (File.Exists(ver))
+            if (File.Exists(VersionFlag))
             {
-                if (Environment.UserInteractive)
-                {
-                    Helpers.Log(Messages.VersionFlag);
-                }
-                File.Delete(ver);
-                File.WriteAllText(app + ".v" + App.Version, DateTime.Now.ToString());
+                Helpers.LogInteractive(Messages.VersionFlag);
+                File.Delete(VersionFlag);
+
+                string app = Path.ChangeExtension(App.Exe, $".v{App.Version}");
+                File.WriteAllText(app, DateTime.Now.ToString());
             }
 
             JobTimer.Continue(Settings.RepeatEvery, Settings.RepeatEvery);
@@ -102,222 +90,69 @@ namespace PingDown
 
             JobTimer.Pause();
 
-            if (_currentState == States.NOT)
+            if (_currentState == States.NOT && Pinger.Ready())
             {
-                if (SendPing("127.0.0.1"))
-                {
-                    Thread.Sleep(_timeout);
-                    _currentState = States.NET;
-                }
+                Thread.Sleep(Settings.DelayStart);
+                _currentState = States.NET;
             }
 
-            if (_currentState == States.NET)
-            {
-                if (!SendPing(_selectedHost))
-                {
-                    _currentState = States.RUN;
-                }
-            }
-
-            if (_currentState == States.RUN)
+            if (_currentState == States.NET && !Pinger.Send())
             {
                 _currentState = States.DOWN;
-
-                int retries = _retries;
-                while (retries > 0)
-                {
-                    Thread.Sleep(_timeout);
-                    if (Environment.UserInteractive)
-                    {
-                        Helpers.Log("Retries " + retries.ToString());
-                    }
-                    
-                    if (SendPings())
-                    {
-                        _currentState = States.NET;
-                        retries = 0;
-                    }
-
-                    retries--;
-                }
             }
 
-            if (_currentState == States.DOWN)
+            if (_currentState == States.DOWN && !CheckDown())
             {
-                if (!CheckDown())
-                {
-                    _currentState = States.NET;
-                }
+                _currentState = States.NET;
             }
 
             JobTimer.Continue();
         }
 
-        private static bool SendPing(string host)
-        {
-            const int routers = _routers;
-            const string data = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
-            bool result = false;
-
-            Ping ping = null;
-            try
-            {
-                ping = new Ping();
-                PingOptions options = new PingOptions(routers, true);
-                byte[] buffer = Encoding.ASCII.GetBytes(data);
-
-                PingReply reply = ping.Send(host, _timeout, buffer, options);
-
-                if (reply != null)
-                {
-                    result = reply.Status == IPStatus.Success;
-                }
-            }
-            catch
-            {
-            }
-            finally
-            {
-                if (ping != null)
-                {
-                    ping.Dispose();
-                }
-            }
-
-            if (Environment.UserInteractive)
-            {
-                Helpers.Log(result ? host : "Failed " + host);
-            }
-
-            return result;
-        }
-
-        private static bool SendPings()
-        {
-            string[] hosts = Settings.Hosts;
-            int counter = hosts.Length;
-            string selected = null;
-
-            var sync = new object();
-            var isReady = new ManualResetEvent(false);
-            bool result = false;
-
-            foreach (string host in hosts)
-            {
-                Ping ping = null;
-                try
-                {
-                    ping = new Ping();
-                    ping.PingCompleted += delegate (object sender, PingCompletedEventArgs e)
-                    {
-                        lock (sync)
-                        {
-                            ping.Dispose();
-
-                            PingReply reply = e.Reply;
-                            if (!result && reply != null && reply.Status == IPStatus.Success)
-                            {
-                                result = true;
-                                selected = host;
-
-                                if (Environment.UserInteractive)
-                                {
-                                    Helpers.Log("Selected " + host);
-                                }
-                            }
-                            else if (Environment.UserInteractive)
-                            {
-                                Helpers.Log("Failed " + host);
-                            }
-
-                            if (--counter == 0)
-                            {
-                                isReady.Set();
-                            }
-                        }
-                    };
-
-                    ping.SendAsync(host, _timeout, null);
-                }
-                catch
-                {
-                    if (Environment.UserInteractive)
-                    {
-                        Helpers.Log("Error " + host);
-                    }
-                }
-                finally
-                {
-                    if (ping != null)
-                    {
-                        ping.Dispose();
-                    }
-                }
-            }
-
-            isReady.WaitOne();
-            if (selected != null)
-            {
-                _selectedHost = selected;
-            }
-            return result;
-        }
-
         private static bool CheckDown()
         {
-            if (Environment.UserInteractive)
+            if (Environment.UserInteractive && !Settings.Force)
             {
-                if (CheckBypass())
-                {
-                    Helpers.Log(Messages.Passed);
-                    return false;
-                }
-
-                if (!Settings.Force)
-                {
-                    Helpers.Log(Messages.ShutdownWanted);
-                    return false;
-                }
+                Helpers.Log(Messages.ShutdownWanted);
+                return false;
             }
-            else if (CheckBypass())
+            
+            if (CheckBypass())
             {
+                Helpers.LogInteractive(Messages.Passed);
                 return false;
             }
 
             Helpers.Log(Messages.ShutdownStarted);
-            ExitWindows.Shutdown(true);
+            ExitWindows.Shutdown();
+
             return true;
         }
 
         private static bool CheckBypass()
         {
-            string file = Path.ChangeExtension(App.Exe, "pass");
-            if (File.Exists(file))
+            if (File.Exists(PassFlag))
             {
                 return true;
             }
 
-            string check = Helpers.Expiration();
+            string pass = Helpers.Expiration();
+
             try
             {
                 foreach (var driveInfo in DriveInfo.GetDrives())
                 {
-                    if (driveInfo.DriveType == DriveType.Removable && driveInfo.IsReady)
+                    if (driveInfo.DriveType == DriveType.Removable &&
+                        driveInfo.IsReady &&
+                        driveInfo.VolumeLabel.ToUpper().Equals(pass))
                     {
-                        string label = driveInfo.VolumeLabel.ToUpper();
-                        if (!string.IsNullOrEmpty(label) && label.Equals(check))
-                        {
-                            return true;
-                        }
+                        return true;
                     }
                 }
             }
             catch (Exception ex)
             {
-                if (Environment.UserInteractive)
-                {
-                    Helpers.Log(Messages.DrivesBad + ex.Message);
-                }
+                Helpers.LogInteractive(Messages.DrivesBad + ex.Message);
             }
 
             return false;

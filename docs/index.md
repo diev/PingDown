@@ -5,6 +5,10 @@
 
 Служба сетевых кабелей.
 
+## Системные требования
+
+ * .NetFramework (latest 4.8)
+
 ## License
 
 Licensed under the [Apache License, Version 2.0].

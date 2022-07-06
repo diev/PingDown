@@ -1,12 +1,14 @@
 ﻿#region License
 //------------------------------------------------------------------------------
 // Copyright (c) Dmitrii Evdokimov
-// Source https://github.com/diev/
+// Open source software https://github.com/diev/
 // 
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// http://www.apache.org/licenses/LICENSE-2.0
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -42,16 +44,19 @@ namespace PingDown
             {
                 Helpers.Log(ex.Message);
                 Helpers.Log(Messages.FailedInstall);
+
                 return 1;
             }
 
             string state = Path.ChangeExtension(App.Exe, "InstallState");
+
             if (File.Exists(state))
             {
                 File.Delete(state);
             }
 
             Helpers.Log(Messages.ServiceInstalled);
+
             return 0;
         }
 
@@ -75,10 +80,12 @@ namespace PingDown
             {
                 Helpers.Log(ex.Message);
                 Helpers.Log(Messages.FailedRemove);
+
                 return 1;
             }
 
             Helpers.Log(Messages.ServiceRemoved);
+
             return 0;
         }
     }
